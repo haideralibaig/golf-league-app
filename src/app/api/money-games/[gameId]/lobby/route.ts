@@ -27,7 +27,10 @@ export async function GET(
       );
     }
 
-    // Step 2: Find the current user
+    // Step 2: Await params to get route parameters
+    const { gameId } = await params;
+
+    // Step 3: Find the current user
     const currentUser = await prisma.user.findUnique({
       where: { clerkId: userId },
     });
@@ -41,7 +44,7 @@ export async function GET(
 
     // Step 3: Fetch the money game with all related data
     const moneyGame = await prisma.moneyGame.findUnique({
-      where: { id: params.gameId },
+      where: { id: gameId },
       include: {
         course: {
           select: {

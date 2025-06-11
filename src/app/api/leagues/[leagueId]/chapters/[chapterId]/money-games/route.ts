@@ -45,7 +45,10 @@ export async function POST(
       );
     }
 
-    // Step 2: Validate request body
+    // Step 2: Await params to get route parameters
+    const { leagueId, chapterId } = await params;
+
+    // Step 3: Validate request body
     const body = await req.json();
     const validationResult = createMoneyGameSchema.safeParse(body);
     
@@ -107,7 +110,7 @@ export async function POST(
       where: {
         userId_chapterId: {
           userId: currentUser.id,
-          chapterId: params.chapterId,
+          chapterId: chapterId,
         },
       },
     });
@@ -122,8 +125,8 @@ export async function POST(
     // Step 5: Verify chapter belongs to the league
     const chapter = await prisma.chapter.findFirst({
       where: {
-        id: params.chapterId,
-        leagueId: params.leagueId,
+        id: chapterId,
+        leagueId: leagueId,
       },
     });
 
@@ -138,7 +141,7 @@ export async function POST(
     const course = await prisma.course.findFirst({
       where: {
         id: courseId,
-        leagueId: params.leagueId,
+        leagueId: leagueId,
       },
     });
 
@@ -154,7 +157,7 @@ export async function POST(
       const invitedPlayers = await prisma.player.findMany({
         where: {
           id: { in: invitedPlayerIds },
-          chapterId: params.chapterId,
+          chapterId: chapterId,
         },
       });
 
@@ -181,7 +184,7 @@ export async function POST(
         data: {
           gameType,
           courseId,
-          chapterId: params.chapterId,
+          chapterId: chapterId,
           currency,
           scheduledDate: scheduledDate ? new Date(scheduledDate) : null,
           description: description || null,
@@ -303,7 +306,10 @@ export async function GET(
       );
     }
 
-    // Step 2: Verify user is a member of this chapter
+    // Step 2: Await params to get route parameters
+    const { leagueId, chapterId } = await params;
+
+    // Step 3: Verify user is a member of this chapter
     const currentUser = await prisma.user.findUnique({
       where: { clerkId: userId },
     });
@@ -319,7 +325,7 @@ export async function GET(
       where: {
         userId_chapterId: {
           userId: currentUser.id,
-          chapterId: params.chapterId,
+          chapterId: chapterId,
         },
       },
     });
@@ -333,7 +339,7 @@ export async function GET(
 
     // Step 3: Get league's default currency
     const league = await prisma.league.findUnique({
-      where: { id: params.leagueId },
+      where: { id: leagueId },
       select: { defaultCurrency: true },
     });
 
@@ -347,7 +353,7 @@ export async function GET(
     // Step 4: Fetch money games for this chapter
     const moneyGames = await prisma.moneyGame.findMany({
       where: {
-        chapterId: params.chapterId,
+        chapterId: chapterId,
       },
       include: {
         course: {

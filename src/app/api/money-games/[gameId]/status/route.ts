@@ -28,7 +28,10 @@ export async function PUT(
       );
     }
 
-    // Step 2: Validate request body
+    // Step 2: Await params to get route parameters
+    const { gameId } = await params;
+
+    // Step 3: Validate request body
     const body = await req.json();
     const validationResult = gameStatusSchema.safeParse(body);
     
@@ -55,7 +58,7 @@ export async function PUT(
 
     // Step 4: Find the money game and verify permissions
     const moneyGame = await prisma.moneyGame.findUnique({
-      where: { id: params.gameId },
+      where: { id: gameId },
       include: {
         creator: {
           include: {
@@ -151,7 +154,7 @@ export async function PUT(
       }
 
       return await tx.moneyGame.update({
-        where: { id: params.gameId },
+        where: { id: gameId },
         data: updateData,
       });
     });
@@ -159,10 +162,10 @@ export async function PUT(
     // Step 9: Publish real-time update to the lobby channel
     try {
       const ablyClient = getAblyServerClient();
-      const lobbyChannel = ablyClient.channels.get(`game-${params.gameId}-lobby`);
+      const lobbyChannel = ablyClient.channels.get(`game-${gameId}-lobby`);
       
       await lobbyChannel.publish("game-status-change", {
-        gameId: params.gameId,
+        gameId: gameId,
         status: newStatus,
         previousStatus: currentStatus,
         updatedBy: moneyGame.creator.displayName,
@@ -171,7 +174,7 @@ export async function PUT(
         completedAt: updatedGame.completedAt?.toISOString(),
       });
 
-      console.log(`Published game status change for game ${params.gameId}: ${currentStatus} -> ${newStatus}`);
+      console.log(`Published game status change for game ${gameId}: ${currentStatus} -> ${newStatus}`);
     } catch (ablyError) {
       console.error("Failed to publish game status update:", ablyError);
       // Don't fail the request if real-time update fails
@@ -193,7 +196,7 @@ export async function PUT(
           const eventType = newStatus === MoneyGameStatus.IN_PROGRESS ? "game-started" : "game-cancelled";
           
           await channel.publish(eventType, {
-            gameId: params.gameId,
+            gameId: gameId,
             gameType: moneyGame.gameType,
             courseName: "Course", // Would need to include course in query
             status: newStatus,
@@ -206,7 +209,7 @@ export async function PUT(
 
         await Promise.all(notificationPromises);
         
-        console.log(`Sent ${newStatus} notifications for game ${params.gameId} to ${registeredPlayers.length} players`);
+        console.log(`Sent ${newStatus} notifications for game ${gameId} to ${registeredPlayers.length} players`);
       } catch (ablyError) {
         console.error("Failed to send game notifications:", ablyError);
       }
@@ -216,7 +219,7 @@ export async function PUT(
     return NextResponse.json(
       {
         message: `Game status updated to ${newStatus}`,
-        gameId: params.gameId,
+        gameId: gameId,
         status: newStatus,
         previousStatus: currentStatus,
         startedAt: updatedGame.startedAt,

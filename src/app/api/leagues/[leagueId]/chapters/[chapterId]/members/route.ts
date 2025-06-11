@@ -19,7 +19,10 @@ export async function GET(
       );
     }
 
-    // Step 2: Find the current user
+    // Step 2: Await params to get route parameters
+    const { leagueId, chapterId } = await params;
+
+    // Step 3: Find the current user
     const currentUser = await prisma.user.findUnique({
       where: { clerkId: userId },
     });
@@ -31,12 +34,12 @@ export async function GET(
       );
     }
 
-    // Step 3: Verify user is a member of this chapter
+    // Step 4: Verify user is a member of this chapter
     const currentPlayer = await prisma.player.findUnique({
       where: {
         userId_chapterId: {
           userId: currentUser.id,
-          chapterId: params.chapterId,
+          chapterId: chapterId,
         },
       },
     });
@@ -48,11 +51,11 @@ export async function GET(
       );
     }
 
-    // Step 4: Verify chapter belongs to the league
+    // Step 5: Verify chapter belongs to the league
     const chapter = await prisma.chapter.findFirst({
       where: {
-        id: params.chapterId,
-        leagueId: params.leagueId,
+        id: chapterId,
+        leagueId: leagueId,
       },
     });
 
@@ -63,10 +66,10 @@ export async function GET(
       );
     }
 
-    // Step 5: Get all active members of this chapter
+    // Step 6: Get all active members of this chapter
     const members = await prisma.player.findMany({
       where: {
-        chapterId: params.chapterId,
+        chapterId: chapterId,
         status: {
           in: ["ONBOARDED", "ACTIVE"], // Only include active members
         },

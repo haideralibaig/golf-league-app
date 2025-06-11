@@ -76,7 +76,7 @@ export async function GET(
       );
     }
 
-    const { leagueId } = params;
+    const { leagueId } = await params;
     
     // Verify user is a member of this league
     const playerMembership = await checkLeagueMember(userId, leagueId);
@@ -202,7 +202,7 @@ export async function POST(
       );
     }
 
-    const { leagueId } = params;
+    const { leagueId } = await params;
 
     // Verify user is an admin of this league
     const adminMembership = await checkLeagueAdmin(userId, leagueId);

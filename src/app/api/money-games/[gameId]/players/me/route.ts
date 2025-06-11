@@ -36,7 +36,10 @@ export async function PUT(
       );
     }
 
-    // Step 2: Validate request body
+    // Step 2: Await params to get route parameters
+    const { gameId } = await params;
+
+    // Step 3: Validate request body
     const body = await req.json();
     const validationResult = playerResponseSchema.safeParse(body);
     
@@ -63,7 +66,7 @@ export async function PUT(
 
     // Step 4: Find the money game and verify it exists
     const moneyGame = await prisma.moneyGame.findUnique({
-      where: { id: params.gameId },
+      where: { id: gameId },
       include: {
         players: {
           include: {
@@ -130,7 +133,7 @@ export async function PUT(
 
       // Get updated game with all players to check readiness
       const gameWithPlayers = await tx.moneyGame.findUnique({
-        where: { id: params.gameId },
+        where: { id: gameId },
         include: {
           players: true,
         },
@@ -158,14 +161,14 @@ export async function PUT(
       if (shouldBeReadyToStart && gameWithPlayers.status === MoneyGameStatus.WAITING_FOR_PLAYERS) {
         updatedGameStatus = MoneyGameStatus.READY_TO_START;
         await tx.moneyGame.update({
-          where: { id: params.gameId },
+          where: { id: gameId },
           data: { status: MoneyGameStatus.READY_TO_START },
         });
       } else if (!shouldBeReadyToStart && gameWithPlayers.status === MoneyGameStatus.READY_TO_START) {
         // If someone declined and we no longer have enough players, go back to waiting
         updatedGameStatus = MoneyGameStatus.WAITING_FOR_PLAYERS;
         await tx.moneyGame.update({
-          where: { id: params.gameId },
+          where: { id: gameId },
           data: { status: MoneyGameStatus.WAITING_FOR_PLAYERS },
         });
       }
@@ -181,10 +184,10 @@ export async function PUT(
     // Step 10: Publish real-time update to the lobby channel
     try {
       const ablyClient = getAblyServerClient();
-      const lobbyChannel = ablyClient.channels.get(`game-${params.gameId}-lobby`);
+      const lobbyChannel = ablyClient.channels.get(`game-${gameId}-lobby`);
       
       await lobbyChannel.publish("player-response", {
-        gameId: params.gameId,
+        gameId: gameId,
         playerId: currentPlayerInGame.playerId,
         playerName: currentPlayerInGame.player?.displayName,
         status: status,
@@ -194,7 +197,7 @@ export async function PUT(
         updatedAt: new Date().toISOString(),
       });
 
-      console.log(`Published player response update for game ${params.gameId}: ${status}`);
+      console.log(`Published player response update for game ${gameId}: ${status}`);
     } catch (ablyError) {
       console.error("Failed to publish real-time update:", ablyError);
       // Don't fail the request if real-time update fails
@@ -204,16 +207,16 @@ export async function PUT(
     if (updatedGame.status !== moneyGame.status) {
       try {
         const ablyClient = getAblyServerClient();
-        const lobbyChannel = ablyClient.channels.get(`game-${params.gameId}-lobby`);
+        const lobbyChannel = ablyClient.channels.get(`game-${gameId}-lobby`);
         
         await lobbyChannel.publish("game-status-change", {
-          gameId: params.gameId,
+          gameId: gameId,
           status: updatedGame.status,
           canStart: updatedGame.canStart,
           updatedAt: new Date().toISOString(),
         });
 
-        console.log(`Published game status change for game ${params.gameId}: ${updatedGame.status}`);
+        console.log(`Published game status change for game ${gameId}: ${updatedGame.status}`);
       } catch (ablyError) {
         console.error("Failed to publish game status update:", ablyError);
       }
@@ -259,7 +262,10 @@ export async function GET(
       );
     }
 
-    // Step 2: Find the current user
+    // Step 2: Await params to get route parameters
+    const { gameId } = await params;
+
+    // Step 3: Find the current user
     const currentUser = await prisma.user.findUnique({
       where: { clerkId: userId },
     });
@@ -273,7 +279,7 @@ export async function GET(
 
     // Step 3: Find the money game and current user's participation
     const moneyGame = await prisma.moneyGame.findUnique({
-      where: { id: params.gameId },
+      where: { id: gameId },
       include: {
         players: {
           where: {
@@ -302,7 +308,7 @@ export async function GET(
     }
 
     return NextResponse.json({
-      gameId: params.gameId,
+      gameId: gameId,
       status: currentPlayerInGame.status,
       joinedAt: currentPlayerInGame.joinedAt,
       canRespond: moneyGame.status === MoneyGameStatus.WAITING_FOR_PLAYERS || 
