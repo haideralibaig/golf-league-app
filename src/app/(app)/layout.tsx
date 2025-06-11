@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { ReactNode } from 'react';
+import { AblyProvider } from '@/components/providers/ably-provider';
 
 interface AuthenticatedLayoutProps {
   children: ReactNode;
@@ -16,6 +17,10 @@ export default async function AuthenticatedLayout({
     redirect('/sign-in');
   }
 
-  // Just render children - let individual pages handle their own data fetching
-  return children;
+  // Wrap children with AblyProvider for real-time features
+  return (
+    <AblyProvider>
+      {children}
+    </AblyProvider>
+  );
 }

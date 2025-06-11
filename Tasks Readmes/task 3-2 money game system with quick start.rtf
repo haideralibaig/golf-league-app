@@ -1,0 +1,365 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Plan: Money Game System with Multi-Currency, Guest Players & Quick Start\
+\
+  1. Database Schema Changes\
+\
+  New Enums for Type Safety\
+\
+  enum GameType \{\
+    TWO_VS_TWO_AUTO_PRESS\
+    INDIVIDUAL_STROKE_PLAY\
+    TEAM_SCRAMBLE\
+    SKINS_GAME\
+  \}\
+\
+  enum MoneyGameStatus \{\
+    WAITING_FOR_PLAYERS    // Lobby phase, players accepting/declining\
+    READY_TO_START         // All players accepted, can start\
+    IN_PROGRESS           // Game is active\
+    COMPLETED             // Game finished\
+    CANCELLED             // Game was cancelled\
+  \}\
+\
+  enum PlayerInvitationStatus \{\
+    INVITED               // Initial state for invited players\
+    ACCEPTED              // Player accepted invitation\
+    DECLINED              // Player declined invitation\
+  \}\
+\
+  enum Currency \{\
+    USD\
+    EUR\
+    GBP\
+    CAD\
+    AUD\
+    JPY\
+    // Add more as needed\
+  \}\
+\
+  MoneyGame Model\
+\
+  model MoneyGame \{\
+    id            String          @id @default(cuid())\
+    gameType      GameType\
+    status        MoneyGameStatus @default(WAITING_FOR_PLAYERS)\
+    courseId      String\
+    chapterId     String          // Which chapter this game belongs to\
+    currency      Currency        @default(USD)\
+    scheduledDate DateTime?       // Optional - null for "Play Now" games\
+    description   String?\
+    createdBy     String          // Player ID who created the game\
+    createdAt     DateTime        @default(now())\
+    updatedAt     DateTime        @updatedAt\
+    startedAt     DateTime?       // When game actually started\
+    completedAt   DateTime?       // When game finished\
+\
+    // Relations\
+    course    Course            @relation(fields: [courseId], references: [id])\
+    chapter   Chapter           @relation(fields: [chapterId], references: [id])\
+    creator   Player            @relation("CreatedMoneyGames", fields: [createdBy], references: [id])\
+    players   MoneyGamePlayer[]\
+\
+    @@index([chapterId, status])\
+    @@index([createdBy])\
+    @@index([scheduledDate])\
+  \}\
+\
+  MoneyGamePlayer Model (Supports Guests)\
+\
+  model MoneyGamePlayer \{\
+    id        String                  @id @default(cuid())\
+    gameId    String\
+    playerId  String?                 // Null for guest players\
+    guestName String?                 // Name for guest players\
+    status    PlayerInvitationStatus  @default(INVITED)\
+    joinedAt  DateTime               @default(now())\
+    updatedAt DateTime               @updatedAt\
+\
+    // Relations\
+    game   MoneyGame @relation(fields: [gameId], references: [id], onDelete: Cascade)\
+    player Player?   @relation(fields: [playerId], references: [id])\
+\
+    // Constraints\
+    @@unique([gameId, playerId])  // Prevent duplicate registered players\
+    @@index([gameId])\
+    @@index([playerId])\
+\
+    // Ensure either playerId OR guestName is provided, not both\
+    @@check(constraint: "player_or_guest", check: (playerId IS NOT NULL AND guestName IS NULL) OR (playerId IS NULL AND guestName IS NOT NULL))\
+  \}\
+\
+  League Model Update (Default Currency)\
+\
+  model League \{\
+    // ... existing fields\
+    defaultCurrency Currency @default(USD)\
+    // ... existing relations\
+  \}\
+\
+  Player Model Update (Money Game Relations)\
+\
+  model Player \{\
+    // ... existing fields\
+\
+    // Relations\
+    createdMoneyGames MoneyGame[]      @relation("CreatedMoneyGames")\
+    moneyGamePlayers  MoneyGamePlayer[]\
+    // ... existing relations\
+  \}\
+\
+  2. Money Games List Page (/leagues/[leagueId]/chapters/[chapterId]/money-games)\
+\
+  Required shadcn/ui Components\
+\
+  - Tabs, TabsList, TabsTrigger, TabsContent - Active vs Completed games\
+  - Card, CardHeader, CardContent, CardFooter - Game display\
+  - Button - "Start New Game" CTA and actions\
+  - Badge - Status and currency indicators\
+  - Avatar, AvatarImage, AvatarFallback - Player representation\
+  - Dialog - Create game modal\
+  - Skeleton - Loading states\
+  - CalendarDays icon - For scheduled games\
+\
+  Page Layout Structure\
+\
+  interface MoneyGameListData \{\
+    activeGames: MoneyGameSummary[];\
+    completedGames: MoneyGameSummary[];\
+    leagueDefaultCurrency: Currency;\
+  \}\
+\
+  interface MoneyGameSummary \{\
+    id: string;\
+    gameType: GameType;\
+    status: MoneyGameStatus;\
+    course: \{ name: string; location?: string \};\
+    scheduledDate?: Date;\
+    currency: Currency;\
+    createdBy: \{ name: string; avatar?: string \};\
+    participants: Array<\{\
+      id?: string;\
+      name: string;\
+      avatar?: string;\
+      isGuest: boolean;\
+      status: PlayerInvitationStatus;\
+    \}>;\
+    playerCount: \{ current: number; required: number \};\
+  \}\
+\
+  Card Design Elements\
+\
+  - Header: Game type, status badge, currency indicator\
+  - Content: Course name, scheduled date (if any), player avatars\
+  - Footer: Action buttons based on user's relationship to game\
+\
+  3. Create New Game UI (Multi-Step Dialog)\
+\
+  Required shadcn/ui Components\
+\
+  - Dialog, DialogContent, DialogHeader - Modal container\
+  - Form, FormField, FormItem, FormLabel - Form structure\
+  - Select, SelectContent, SelectItem - Dropdowns\
+  - Combobox - Course and currency selection\
+  - Calendar, Popover - Date/time picker\
+  - Switch - "Play Now" toggle\
+  - Input - Guest name entry\
+  - Button - Navigation and actions\
+  - Progress - Step indicator\
+  - Checkbox - Player selection\
+  - Card - Player and guest cards\
+  - Separator - Visual separation\
+\
+  Step 1: Game Setup\
+\
+  interface GameSetupData \{\
+    gameType: GameType;\
+    courseId: string;\
+    currency: Currency;\
+    playNow: boolean;\
+    scheduledDate?: Date;\
+    scheduledTime?: string;\
+    description?: string;\
+  \}\
+\
+  UI Elements:\
+  - Game type selector with player count indicators\
+  - Course combobox with search functionality\
+  - Currency selector (defaults to league currency)\
+  - "Play Now" toggle switch\
+  - Conditional date/time picker (hidden when "Play Now" is active)\
+  - Optional description textarea\
+\
+  Step 2: Player Selection\
+\
+  interface PlayerSelectionData \{\
+    invitedPlayerIds: string[];\
+    guests: Array<\{ name: string; tempId: string \}>;\
+  \}\
+\
+  interface ChapterMember \{\
+    id: string;\
+    displayName: string;\
+    avatar?: string;\
+    isOnline: boolean;\
+  \}\
+\
+  UI Elements:\
+  - Search bar for filtering chapter members\
+  - Grid of member cards with selection checkboxes\
+  - "Add Guest" button opening name input\
+  - Guest player cards with remove option\
+  - Selected count indicator with format requirements\
+  - Validation messages for player count rules\
+\
+  Player Count Rules:\
+  - TWO_VS_TWO_AUTO_PRESS: Exactly 3 others (4 total)\
+  - INDIVIDUAL_STROKE_PLAY: 1-7 others (2-8 total)\
+  - TEAM_SCRAMBLE: 3 others (4 total)\
+  - SKINS_GAME: 1-7 others (2-8 total)\
+\
+  Step 3: Review & Confirm\
+\
+  UI Elements:\
+  - Game details summary card\
+  - Player list with guest indicators\
+  - Currency and financial terms\
+  - "Edit" buttons for each section\
+  - Terms acceptance checkbox\
+  - "Create Game" confirmation button\
+\
+  4. Game Lobby Page (/money-games/[gameId]/lobby)\
+\
+  Required shadcn/ui Components\
+\
+  - Card, CardHeader, CardContent - Layout sections\
+  - Badge - Status indicators\
+  - Button - Accept/Decline/Start actions\
+  - Avatar, AvatarGroup - Player representation\
+  - Alert, AlertDescription - Status messages\
+  - Progress - Loading and readiness indicators\
+  - Skeleton - Loading placeholders\
+  - Clock icon - For scheduled games\
+\
+  Real-time Integration\
+\
+  Ably Channel: game-$\{gameId\}-lobby\
+\
+  Message Types:\
+  - player-response: Player accepted/declined invitation\
+  - game-status-change: Game started/cancelled\
+  - lobby-update: General lobby state changes\
+\
+  Presence Tracking:\
+  - Track which invited players are currently viewing the lobby\
+  - Show online/offline status for registered players\
+\
+  Lobby Layout Structure\
+\
+  interface GameLobbyData \{\
+    game: \{\
+      id: string;\
+      gameType: GameType;\
+      status: MoneyGameStatus;\
+      currency: Currency;\
+      course: \{ name: string; location?: string \};\
+      scheduledDate?: Date;\
+      description?: string;\
+      createdBy: \{ id: string; name: string \};\
+    \};\
+    participants: Array<\{\
+      id?: string;\
+      name: string;\
+      avatar?: string;\
+      isGuest: boolean;\
+      status: PlayerInvitationStatus;\
+      isOnline: boolean;\
+      isCurrentUser: boolean;\
+    \}>;\
+    canStart: boolean;\
+    currentUserStatus: PlayerInvitationStatus;\
+    isCreator: boolean;\
+  \}\
+\
+  Section Design:\
+  - Game Info Card: All game details with currency prominently displayed\
+  - Players Section: Grid of player cards showing status and presence\
+  - Actions Section: Context-aware buttons based on user role\
+\
+  5. API Endpoints Required\
+\
+  Money Games Management\
+\
+  // GET /api/leagues/[leagueId]/chapters/[chapterId]/money-games\
+  // Returns: \{ activeGames: MoneyGameSummary[], completedGames: MoneyGameSummary[] \}\
+\
+  // POST /api/leagues/[leagueId]/chapters/[chapterId]/money-games\
+  // Body: CreateMoneyGameRequest\
+  // Returns: \{ gameId: string, lobbyUrl: string \}\
+\
+  // GET /api/money-games/[gameId]\
+  // Returns: MoneyGameDetails\
+\
+  // GET /api/money-games/[gameId]/lobby\
+  // Returns: GameLobbyData\
+\
+  // PUT /api/money-games/[gameId]/players/[playerId]\
+  // Body: \{ status: "ACCEPTED" | "DECLINED" \}\
+  // Returns: UpdatedPlayerStatus\
+\
+  // PUT /api/money-games/[gameId]/status\
+  // Body: \{ status: MoneyGameStatus \}\
+  // Returns: UpdatedGameStatus (creator only)\
+\
+  Supporting Endpoints\
+\
+  // GET /api/leagues/[leagueId]/chapters/[chapterId]/members\
+  // Returns: Available players for invitations\
+\
+  // GET /api/leagues/[leagueId]/courses\
+  // Returns: Available courses for game creation\
+\
+  // GET /api/leagues/[leagueId]/settings\
+  // Returns: League settings including defaultCurrency\
+\
+  6. Data Flow Architecture\
+\
+  Game Creation Flow\
+\
+  1. Open Dialog: Load chapter members, courses, league settings\
+  2. Step Navigation: Validate each step with format-specific rules\
+  3. Guest Handling: Validate guest names, prevent duplicates\
+  4. Currency Selection: Default to league currency, allow override\
+  5. API Creation: Create game with players and guests\
+  6. Ably Notifications: Send invitations to registered players\
+  7. Redirect: Navigate to lobby with real-time updates\
+\
+  Invitation Response Flow\
+\
+  1. Real-time Notification: Player receives invitation via Ably\
+  2. Lobby Access: Player navigates to lobby page\
+  3. Status Update: Accept/decline triggers API call\
+  4. Broadcast Update: Status change sent to all lobby participants\
+  5. Game Readiness: Check if all players accepted for start button\
+\
+  Multi-Currency Considerations\
+\
+  - Display currency symbols consistently\
+  - Store exchange rates for future settlement tracking\
+  - Show currency prominently in all game interfaces\
+  - Validate currency selection against supported currencies\
+\
+  Guest Player Handling\
+\
+  - Guests cannot receive real-time notifications\
+  - Creator responsible for communicating with guests\
+  - Guest status managed manually by creator or registered players\
+  - Clear visual distinction between guests and registered players\
+\
+  This comprehensive plan supports all the enhanced requirements while maintaining a clean, scalable architecture that leverages our existing Ably real-time\
+  infrastructure.}

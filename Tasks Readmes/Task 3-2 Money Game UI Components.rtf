@@ -1,0 +1,271 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Plan: Money Game UI Components\
+\
+  Overview\
+\
+  Build a comprehensive money game system with real-time player interactions, using a clean multi-step workflow from game creation to live lobby management.\
+\
+  1. Money Games List Page (/money-games)\
+\
+  Page Structure\
+\
+  - Header Section: Page title, breadcrumb navigation, "Start New Game" CTA\
+  - Tabbed Interface: Active Games vs Completed Games\
+  - Game Cards Grid: Responsive card layout with game summaries\
+  - Empty States: Friendly messages when no games exist\
+\
+  Required shadcn/ui Components\
+\
+  - Tabs, TabsList, TabsTrigger, TabsContent - Main navigation\
+  - Card, CardHeader, CardContent, CardFooter - Game display\
+  - Button - Primary actions and navigation\
+  - Badge - Game status indicators\
+  - Avatar, AvatarImage, AvatarFallback - Player avatars\
+  - Separator - Visual content division\
+\
+  Game Card Design\
+\
+  interface GameCardData \{\
+    id: string;\
+    gameType: string; // "2v2 Auto-Press"\
+    course: \{ name: string; location?: string \};\
+    scheduledDate: Date;\
+    status: "pending" | "active" | "completed" | "cancelled";\
+    players: Array<\{\
+      id: string;\
+      name: string;\
+      avatar?: string;\
+      status: "invited" | "accepted" | "declined";\
+    \}>;\
+    currentScore?: string;\
+    createdBy: string;\
+  \}\
+\
+  Card Content Structure\
+\
+  - Header: Game type, status badge, date\
+  - Body: Course name, player avatars with status indicators\
+  - Footer: Action buttons (Join, View, Resume based on status)\
+\
+  2. Create New Game UI (/money-games/new)\
+\
+  Implementation Approach: Multi-Step Dialog\
+\
+  Use a modal dialog with step-by-step wizard pattern for better UX.\
+\
+  Required shadcn/ui Components\
+\
+  - Dialog, DialogContent, DialogHeader, DialogTitle - Modal container\
+  - Form, FormField, FormItem, FormLabel, FormControl - Form structure\
+  - Input, Textarea - Basic form inputs\
+  - Select, SelectContent, SelectItem, SelectTrigger - Dropdowns\
+  - Combobox - Course selection with search\
+  - Calendar, Popover - Date picker\
+  - Checkbox - Player selection\
+  - Button - Navigation and actions\
+  - Progress - Step indicator\
+  - Card - Player selection cards\
+\
+  Step-by-Step Breakdown\
+\
+  Step 1: Game Setup\
+\
+  interface GameSetupData \{\
+    gameType: "2v2-auto-press" | "individual" | "team-scramble"; // Default: 2v2-auto-press\
+    scheduledDate: Date;\
+    courseId: string;\
+    description?: string;\
+  \}\
+\
+  UI Elements:\
+  - Game format selector (radio buttons with descriptions)\
+  - Date picker with calendar popup\
+  - Course combobox with search/filter functionality\
+  - Optional game description textarea\
+\
+  Step 2: Player Selection\
+\
+  interface PlayerSelectionData \{\
+    invitedPlayers: string[]; // Array of user IDs (exactly 3 for 2v2)\
+  \}\
+\
+  UI Elements:\
+  - Search bar for filtering chapter members\
+  - Grid of player cards with checkboxes\
+  - Selected players summary panel\
+  - Validation: Exactly 3 players for 2v2 format\
+\
+  Step 3: Review & Confirm\
+\
+  UI Elements:\
+  - Summary cards showing all game details\
+  - Editable sections with "Change" buttons\
+  - Final confirmation with terms\
+  - Loading state during game creation\
+\
+  Form Validation Strategy\
+\
+  - Real-time validation with error states\
+  - Step completion indicators\
+  - Prevent progression until required fields completed\
+  - Final submission validation\
+\
+  3. Game Lobby Page (/money-games/[gameId]/lobby)\
+\
+  Real-time Features Using Ably\
+\
+  - Channel: game-$\{gameId\}-lobby\
+  - Live player status updates\
+  - Real-time invitation responses\
+  - Game state changes\
+\
+  Required shadcn/ui Components\
+\
+  - Card, CardHeader, CardContent - Game details and player sections\
+  - Badge - Player status indicators\
+  - Button - Accept/Decline/Start actions\
+  - Avatar, AvatarGroup - Player representation\
+  - Progress - Loading states\
+  - Alert, AlertDescription - Status messages\
+  - Skeleton - Loading placeholders\
+\
+  Page Layout Structure\
+\
+  Game Details Section\
+\
+  interface GameLobbyData \{\
+    gameId: string;\
+    gameType: string;\
+    course: \{ name: string; location?: string \};\
+    scheduledDate: Date;\
+    createdBy: \{ id: string; name: string \};\
+    status: "waiting" | "ready" | "started" | "cancelled";\
+  \}\
+\
+  Players Section\
+\
+  interface LobbyPlayer \{\
+    id: string;\
+    name: string;\
+    avatar?: string;\
+    status: "invited" | "accepted" | "declined";\
+    isOnline: boolean; // From Ably presence\
+    lastSeen?: Date;\
+  \}\
+\
+  Player Card Design:\
+  - Avatar with online status indicator\
+  - Player name and role\
+  - Status badge (Invited/Accepted/Declined)\
+  - Real-time presence indicator\
+\
+  Action Section\
+\
+  For Game Creator:\
+  - "Start Game" button (enabled when all players accepted)\
+  - "Cancel Game" option\
+  - "Edit Game" option (if no one has accepted yet)\
+\
+  For Invited Players:\
+  - "Accept Invitation" button\
+  - "Decline Invitation" button\
+  - Game details review\
+\
+  4. Data Flow Architecture\
+\
+  Game Creation Flow\
+\
+  1. User Opens Dialog: Load available courses and chapter members\
+  2. Step Navigation: Validate each step before allowing progression\
+  3. API Call: POST /api/money-games with complete game data\
+  4. Database Creation: Create game record with invited players\
+  5. Ably Notifications: Send invitations via private-user-$\{userId\} channels\
+  6. Redirect: Navigate to lobby page\
+\
+  Invitation Response Flow\
+\
+  1. Player Receives Invitation: Via Ably real-time notification\
+  2. Player Navigates to Lobby: Access via notification or games list\
+  3. Status Update: PUT /api/money-games/[gameId]/players/[playerId]\
+  4. Real-time Broadcast: Update sent via game-$\{gameId\}-lobby channel\
+  5. UI Updates: All lobby participants see status change instantly\
+\
+  Real-time Channel Strategy\
+\
+  Game Lobby Channel: game-$\{gameId\}-lobby\
+\
+  Messages:\
+  - player-status-changed: When player accepts/declines\
+  - game-status-changed: When game is started/cancelled\
+  - player-joined-lobby: When player enters lobby page\
+\
+  Presence:\
+  - Track who's currently viewing the lobby\
+  - Show online/offline status for invited players\
+\
+  Private User Channels: private-user-$\{userId\}\
+\
+  Messages:\
+  - game-invitation: New game invitation received\
+  - game-started: Game you're in has started\
+  - game-cancelled: Game you're in was cancelled\
+\
+  5. API Endpoints Required\
+\
+  Money Games Management\
+\
+  - GET /api/money-games - List user's games\
+  - POST /api/money-games - Create new game\
+  - GET /api/money-games/[gameId] - Get game details\
+  - PUT /api/money-games/[gameId] - Update game (creator only)\
+  - DELETE /api/money-games/[gameId] - Cancel game\
+\
+  Player Management\
+\
+  - PUT /api/money-games/[gameId]/players/[playerId] - Accept/decline invitation\
+  - GET /api/money-games/[gameId]/lobby - Get lobby state\
+\
+  Chapter Members\
+\
+  - GET /api/chapters/[chapterId]/members - Get available players for invitations\
+\
+  6. Database Schema Additions\
+\
+  Money Games Table\
+\
+  model MoneyGame \{\
+    id            String   @id @default(cuid())\
+    gameType      String   // "2v2-auto-press", etc.\
+    courseId      String\
+    scheduledDate DateTime\
+    status        String   // "waiting", "active", "completed", "cancelled"\
+    createdBy     String   // User ID\
+    description   String?\
+    createdAt     DateTime @default(now())\
+    updatedAt     DateTime @updatedAt\
+\
+    course   Course @relation(fields: [courseId], references: [id])\
+    players  MoneyGamePlayer[]\
+  \}\
+\
+  model MoneyGamePlayer \{\
+    id       String @id @default(cuid())\
+    gameId   String\
+    playerId String\
+    status   String // "invited", "accepted", "declined"\
+    joinedAt DateTime @default(now())\
+\
+    game   MoneyGame @relation(fields: [gameId], references: [id])\
+    player Player    @relation(fields: [playerId], references: [id])\
+\
+    @@unique([gameId, playerId])\
+  \}\
+\
+  This plan provides a comprehensive money game system with real-time features, proper user experience flows, and scalable architecture that leverages our existing\
+  Ably integration.}

@@ -64,7 +64,7 @@ async function checkLeagueMember(userId: string, leagueId: string) {
 // GET /api/leagues/[leagueId]/courses
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ leagueId: string }> }
+  { params }: { params: { leagueId: string } }
 ) {
   try {
     // Check authentication
@@ -76,7 +76,7 @@ export async function GET(
       );
     }
 
-    const { leagueId } = await params;
+    const { leagueId } = params;
     
     // Verify user is a member of this league
     const playerMembership = await checkLeagueMember(userId, leagueId);
@@ -169,15 +169,14 @@ export async function GET(
       ]
     });
 
-    return NextResponse.json({
-      courses,
-      total: courses.length,
-      filters: {
-        type,
-        search,
-        holeCount
-      }
-    });
+    // Transform courses to match UI expectations
+    const transformedCourses = courses.map(course => ({
+      id: course.id,
+      name: course.name,
+      location: course.location,
+    }));
+
+    return NextResponse.json(transformedCourses);
 
   } catch (error) {
     console.error("Error fetching courses:", error);
@@ -191,7 +190,7 @@ export async function GET(
 // POST /api/leagues/[leagueId]/courses
 export async function POST(
   req: Request,
-  { params }: { params: Promise<{ leagueId: string }> }
+  { params }: { params: { leagueId: string } }
 ) {
   try {
     // Check authentication
@@ -203,7 +202,7 @@ export async function POST(
       );
     }
 
-    const { leagueId } = await params;
+    const { leagueId } = params;
 
     // Verify user is an admin of this league
     const adminMembership = await checkLeagueAdmin(userId, leagueId);

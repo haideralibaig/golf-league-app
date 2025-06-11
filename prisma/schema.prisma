@@ -15,13 +15,14 @@ datasource db {
 // ==========================================
 
 model League {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  joinCode    String   @unique @default(cuid())
-  settings    Json     @default("{}")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  joinCode        String   @unique @default(cuid())
+  settings        Json     @default("{}")
+  defaultCurrency Currency @default(USD)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   // Relations
   chapters Chapter[]
@@ -41,8 +42,9 @@ model Chapter {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  league  League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
-  players Player[]
+  league     League      @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  players    Player[]
+  moneyGames MoneyGame[]
 
   @@index([leagueId])
 }
@@ -82,9 +84,11 @@ model Player {
   updatedAt     DateTime     @updatedAt
 
   // Relations
-  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chapter    Chapter           @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-  statistics PlayerStatistics?
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter           Chapter            @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  statistics        PlayerStatistics?
+  createdMoneyGames MoneyGame[]        @relation("CreatedMoneyGames")
+  moneyGamePlayers  MoneyGamePlayer[]
 
   @@unique([userId, chapterId])
   @@index([userId])
@@ -138,9 +142,10 @@ model Course {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  league  League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
-  holes   Hole[]
-  teeSets TeeSet[]
+  league     League      @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  holes      Hole[]
+  teeSets    TeeSet[]
+  moneyGames MoneyGame[]
 
   @@index([leagueId])
 }
@@ -182,6 +187,51 @@ model TeeSetHoleInfo {
   @@unique([teeSetId, holeId])
 }
 
+model MoneyGame {
+  id            String          @id @default(cuid())
+  gameType      GameType
+  status        MoneyGameStatus @default(WAITING_FOR_PLAYERS)
+  courseId      String
+  chapterId     String          // Which chapter this game belongs to
+  currency      Currency        @default(USD)
+  scheduledDate DateTime?       // Optional - null for "Play Now" games
+  description   String?
+  createdBy     String          // Player ID who created the game
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  startedAt     DateTime?       // When game actually started
+  completedAt   DateTime?       // When game finished
+
+  // Relations
+  course    Course            @relation(fields: [courseId], references: [id])
+  chapter   Chapter           @relation(fields: [chapterId], references: [id])
+  creator   Player            @relation("CreatedMoneyGames", fields: [createdBy], references: [id])
+  players   MoneyGamePlayer[]
+
+  @@index([chapterId, status])
+  @@index([createdBy])
+  @@index([scheduledDate])
+}
+
+model MoneyGamePlayer {
+  id        String                  @id @default(cuid())
+  gameId    String
+  playerId  String?                 // Null for guest players
+  guestName String?                 // Name for guest players
+  status    PlayerInvitationStatus  @default(INVITED)
+  joinedAt  DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+
+  // Relations
+  game   MoneyGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  player Player?   @relation(fields: [playerId], references: [id])
+
+  // Constraints
+  @@unique([gameId, playerId])  // Prevent duplicate registered players
+  @@index([gameId])
+  @@index([playerId])
+}
+
 
 // ==========================================
 // ENUMS
@@ -201,4 +251,34 @@ enum PlayerStatus {
   ACTIVE    // Fully active member
   INACTIVE
   SUSPENDED
+}
+
+enum GameType {
+  TWO_VS_TWO_AUTO_PRESS
+  INDIVIDUAL_STROKE_PLAY
+  TEAM_SCRAMBLE
+  SKINS_GAME
+}
+
+enum MoneyGameStatus {
+  WAITING_FOR_PLAYERS    // Lobby phase, players accepting/declining
+  READY_TO_START         // All players accepted, can start
+  IN_PROGRESS           // Game is active
+  COMPLETED             // Game finished
+  CANCELLED             // Game was cancelled
+}
+
+enum PlayerInvitationStatus {
+  INVITED               // Initial state for invited players
+  ACCEPTED              // Player accepted invitation
+  DECLINED              // Player declined invitation
+}
+
+enum Currency {
+  USD
+  EUR
+  GBP
+  CAD
+  AUD
+  JPY
 }

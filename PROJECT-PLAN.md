@@ -37,43 +37,42 @@ This document outlines the step-by-step plan for building The Bogey Club applica
 
 ---
 
-## Phase 3: Real-time Money Games (MVP)
+Phase 3: Real-time Money Games (MVP)
+➡️ Status: ⏳ In Progress
 
-**➡️ Status: 📋 Not Started** `(⬅️ We are here)`
+Goal: Implement the core Auto-Press Match Play feature using Ably for live scoring.
 
-**Goal:** Implement the core `Auto-Press Match Play` feature using Ably for live scoring.
+[✔] Task 3.1: Design the client-side logic for subscribing to Ably channels (e.g., league-ID-game-ID).
+[ ] Task 3.2: Build the UI for players to create and join a new money game. This includes support for Guest Players, a Quick Start option (no date/time), and Currency Selection. (⬅️ We are here)
+[ ] Task 3.3: Create the API route that initiates a game and publishes the "start game" event to Ably. The API must handle guest data and optional dates.
+[ ] Task 3.4: Develop the digital scorecard UI and the API route that receives score updates. This API must publish both score changes and granular game events (e.g., birdie, match-status-change) to the correct Ably channel.
+[ ] Task 3.5: Implement the public, read-only view for a money game that can be shared via a link.
+[ ] Task 3.6: Implement the Money Game Ledger system, including the necessary database models (Transaction) and UI for players to view and settle debts.
+[ ] Task 3.7: Integrate a third-party currency conversion API for settling debts in different currencies.
 
-- [ ] **Task 3.1:** Design the client-side logic for subscribing to Ably channels (e.g., `league-ID-game-ID`).
-- [ ] **Task 3.2:** Build the UI for players to create and join a new money game.
-- [ ] **Task 3.3:** Create the API route that initiates a game and publishes the "start game" event to Ably.
-- [ ] **Task 3.4:** Develop the digital scorecard UI and the API route that receives score updates and publishes them to the correct Ably channel.
-- [ ] **Task 3.5:** Implement the public, read-only view for a money game that can be shared via a link.
+Phase 4: Social Features (MVP)
+➡️ Status: 📋 Not Started
 
----
+Goal: Build the initial social features to increase user engagement.
 
-## Phase 4: Social Features (MVP)
+[ ] Task 4.0 (New): Design and implement the Player vs. Player Challenge system.
+[ ] Task 4.1: Add a Comment model to Prisma, linked to scorecards or rounds.
+[ ] Task 4.2: Build the UI to display and post comments on a scorecard page.
+[ ] Task 4.3: Use Ably to make new comments appear in real-time without a page refresh.
+[ ] Task 4.4: Set up basic push notifications via a service for key events (e.g., "Player X made a birdie").
+Phase 5: Handicap System (MVP & Visualization)
+➡️ Status: 📋 Not Started
 
-**➡️ Status: 📋 Not Started**
+Goal: Implement the core handicapping system and the player-facing visualization tool.
 
-**Goal:** Build the initial social features to increase user engagement.
+[ ] Task 5.1: Implement the handicap calculation engine based on the globalHandicapIndex stored on the User model.
+[ ] Task 5.2: Create an API route or scheduled Vercel Cron Job to update handicaps.
+[ ] Task 5.3: Build the handicap visualization tool on the player dashboard to show progression of the globalHandicapIndex.
+[ ] Task 5.4: Implement the UI for League Admins to set a league-specific handicapIndex override on a Player record.
+Phase 6: Integrations & Advanced Features
+➡️ Status: 📋 Not Started
 
-- [ ] **Task 4.1:** Add a `Comment` model to Prisma, linked to scorecards or rounds.
-- [ ] **Task 4.2:** Build the UI to display and post comments on a scorecard page.
-- [ ] **Task 4.3:** Use Ably to make new comments appear in real-time without a page refresh.
-- [ ] **Task 4.4:** Set up basic push notifications via a service for key events (e.g., "Player X made a birdie").
+Goal: Add high-value integrations and other enhancements after the core MVP is complete.
 
----
-
-## Phase 5: Handicap System (MVP & Visualization)
-
-**➡️ Status: 📋 Not Started**
-
-**Goal:** Implement the core handicapping system and the player-facing visualization tool.
-
-- [ ] **Task 5.1:** Implement the handicap calculation engine based on the `globalHandicapIndex` stored on the `User` model.
-- [ ] **Task 5.2:** Create an API route or scheduled Vercel Cron Job to update handicaps.
-- [ ] **Task 5.3:** Build the handicap visualization tool on the player dashboard to show progression of the `globalHandicapIndex`.
-- [ ] **Task 5.4:** Implement the UI for League Admins to set a league-specific `handicapIndex` override on a `Player` record.
-
----
-*(Subsequent phases for Tournament Management, Reporting, and advanced Club Management features will be detailed as we complete these initial milestones.)*
+[ ] Task 6.1 (New): Implement Calendar Integration (.ics file export for games and events).
+(Subsequent phases will be detailed as we complete these initial milestones.)
