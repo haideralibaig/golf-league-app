@@ -1,0 +1,124 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 I'll propose a comprehensive plan for implementing the league creation feature.\
+\
+  League Creation Feature Plan for Task 1.4\
+\
+  1. UI Form Component\
+\
+  File: /src/app/leagues/new/page.tsx\
+\
+  Component Structure:\
+  - Protected route (only accessible to authenticated users)\
+  - Simple form with the following fields:\
+    - League Name (required, text input)\
+    - Description (optional, textarea)\
+    - Submit button ("Create League")\
+  - Loading state during submission\
+  - Error handling with user-friendly messages\
+  - Success redirect to league dashboard or onboarding\
+\
+  Form Features:\
+  - Client-side validation for league name (required, min length)\
+  - Disabled submit button while processing\
+  - Clear error messages if creation fails\
+  - Uses React Hook Form or native React state management\
+\
+  2. Form Submission Logic\
+\
+  Client-Side Flow:\
+  1. Validate form inputs\
+  2. Show loading state\
+  3. POST to /api/leagues with form data\
+  4. Handle response:\
+    - Success: Redirect to /leagues/[leagueId]/onboarding or dashboard\
+    - Error: Display error message and allow retry\
+  5. Clear loading state\
+\
+  Data Sent:\
+  \{\
+    name: string;\
+    description?: string;\
+  \}\
+\
+  3. API Route Implementation\
+\
+  File: /src/app/api/leagues/route.ts\
+\
+  Step-by-Step Process:\
+\
+  Step 1: Authentication Check\
+\
+  - Use auth() from Clerk to verify user is authenticated\
+  - Return 401 if not authenticated\
+\
+  Step 2: Validate Input\
+\
+  - Check league name is provided and meets requirements\
+  - Sanitize inputs to prevent XSS\
+\
+  Step 3: Create Clerk Organization\
+\
+  - Use Clerk Backend SDK to create an organization\
+  - Organization name = League name\
+  - Set the current user as the organization owner/admin\
+  - Clerk will handle:\
+    - Unique organization ID generation\
+    - Member management infrastructure\
+    - Permission system\
+\
+  Step 4: Create League Record\
+\
+  - After successful Clerk organization creation:\
+    - Begin database transaction\
+    - Create League record with:\
+        - Name and description from form\
+      - Generated join code\
+      - Link to Clerk organization ID (stored in settings JSON)\
+    - Create Player record:\
+        - Link user to league\
+      - Set role as CHAPTER_ADMIN\
+      - Set initial display name from user's profile\
+    - Commit transaction\
+\
+  Step 5: Handle Errors\
+\
+  - If Clerk organization creation fails: Return appropriate error\
+  - If database operation fails:\
+    - Rollback transaction\
+    - Consider deleting Clerk organization to maintain consistency\
+    - Return error with details\
+\
+  Step 6: Return Response\
+\
+  - Success: Return league ID and redirect URL\
+  - Include league data for immediate use in the UI\
+\
+  4. Additional Considerations\
+\
+  Permissions:\
+  - Any authenticated user can create a league\
+  - Creator automatically becomes league admin\
+  - Future: Consider limits on number of leagues per user\
+\
+  Data Consistency:\
+  - Use database transactions to ensure atomicity\
+  - Handle cleanup if partial failure occurs\
+  - Log all operations for debugging\
+\
+  User Experience:\
+  - After creation, redirect to league setup/onboarding\
+  - Show success message\
+  - Provide next steps (invite members, set up courses, etc.)\
+\
+  Security:\
+  - Validate all inputs\
+  - Use parameterized queries (Prisma handles this)\
+  - Rate limit league creation to prevent abuse\
+\
+  This approach leverages Clerk's organization feature for multi-tenancy while maintaining our own league data for golf-specific functionality.}

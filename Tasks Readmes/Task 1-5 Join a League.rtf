@@ -1,0 +1,110 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Join League Feature Plan for Task 1.5\
+\
+  Part 1: UI Component (/leagues/join)\
+\
+  Component Structure:\
+  - Location: /src/app/leagues/join/page.tsx\
+  - Protected route (authenticated users only)\
+  - Simple, centered card layout matching the create league design\
+\
+  Form Elements:\
+  - Single text input for join code\
+  - Placeholder text: "Enter league invite code"\
+  - Submit button: "Join League"\
+  - Cancel/Back button to return to previous page\
+\
+  Form Behavior:\
+  - Validation:\
+    - Client-side: Required field, trim whitespace\
+    - Show inline error if empty\
+  - Loading State:\
+    - Disable input and buttons during submission\
+    - Button text changes to "Joining..."\
+    - Show loading spinner\
+  - Error Handling:\
+    - Display server errors in a red alert box above the form\
+    - Common errors: "Invalid code", "Already a member", "League not found"\
+    - Preserve entered code on error for retry\
+  - Success Flow:\
+    - Redirect to /leagues/[leagueId]/dashboard or /leagues/[leagueId]/onboarding\
+    - Show success toast/notification if possible\
+\
+  Data Flow:\
+  - POST to /api/leagues/join with \{ joinCode: string \}\
+  - Handle 200/201 for success, 400/404/409 for various errors\
+\
+  Part 2: API Route (/api/leagues/join)\
+\
+  Location: /src/app/api/leagues/join/route.ts\
+\
+  Step-by-step Logic:\
+\
+  a. Authentication Check:\
+  - Use await auth() to get current user\
+  - Return 401 if not authenticated\
+  - Extract userId for subsequent operations\
+\
+  b. Find League by Join Code:\
+  - Query database: prisma.league.findUnique(\{ where: \{ joinCode \} \})\
+  - Return 404 with "Invalid join code" if not found\
+  - Extract league ID and Clerk organization ID from settings\
+\
+  c. Check Existing Membership:\
+  - Query: prisma.player.findUnique(\{ where: \{ userId_leagueId: \{ userId, leagueId \} \} \})\
+  - If player exists, return 409 (Conflict) with "You are already a member of this league"\
+\
+  d. Add to Clerk Organization:\
+  - Get Clerk client: const clerk = await clerkClient()\
+  - Extract clerkOrganizationId from league settings\
+  - Call: clerk.organizations.createOrganizationMembership(\{ organizationId, userId, role: "org:member" \})\
+  - Handle errors (user might already be in Clerk org but not in our DB)\
+\
+  e. Create Database Records:\
+  - Use Prisma transaction for atomicity:\
+  prisma.$transaction([\
+    // Create Player record\
+    prisma.player.create(\{\
+      data: \{\
+        userId: dbUser.id,\
+        leagueId: league.id,\
+        role: "PLAYER", // Default role\
+        displayName: // Construct from user's name or email\
+      \}\
+    \}),\
+    // Create PlayerStatistics\
+    prisma.playerStatistics.create(\{\
+      data: \{\
+        playerId: // ID from player creation\
+      \}\
+    \})\
+  ])\
+\
+  f. Success Response:\
+  - Status: 201 (Created)\
+  - Response body:\
+  \{\
+    "message": "Successfully joined league",\
+    "leagueId": "league_id_here",\
+    "leagueName": "League Name",\
+    "redirectUrl": "/leagues/[leagueId]/dashboard"\
+  \}\
+\
+  Error Handling:\
+  - Wrap all operations in try-catch\
+  - If Clerk operation fails after DB check, handle gracefully\
+  - If DB operation fails after Clerk success, attempt to remove from Clerk org\
+  - Log all errors for debugging\
+  - Return user-friendly error messages\
+\
+  Additional Considerations:\
+  - Case-insensitive join code matching\
+  - Trim whitespace from join code\
+  - Consider rate limiting to prevent brute force attempts\
+  - Future: Add expiring join codes or admin approval flow}

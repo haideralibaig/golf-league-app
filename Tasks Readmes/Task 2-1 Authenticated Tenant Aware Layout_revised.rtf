@@ -1,0 +1,168 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Plan for Task 2.1: Main Authenticated Layout with League/Chapter Hierarchy\
+\
+  1. Updated Architecture Overview\
+\
+  New Hierarchy:\
+  - League \uc0\u8594  Contains multiple Chapters \u8594  Contains multiple Players\
+  - A Player belongs to ONE Chapter within a League\
+  - Players can be in multiple Leagues (but only one Chapter per League)\
+\
+  Route Group Structure: /src/app/(app)/layout.tsx\
+  - Wraps all authenticated pages\
+  - Manages League and Chapter context\
+  - Handles authentication and data fetching\
+\
+  2. Layout Component Architecture\
+\
+  <AuthenticatedLayout>\
+    <Sidebar />\
+    <div className="main-content">\
+      <Header>\
+        <ContextBreadcrumb /> \{/* Shows: League > Chapter */\}\
+        <ContextSwitcher />\
+        <UserMenu />\
+      </Header>\
+      <ContentArea>\
+        \{children\}\
+      </ContentArea>\
+    </div>\
+  </AuthenticatedLayout>\
+\
+  3. Sidebar Navigation Plan\
+\
+  Universal Links (All Members):\
+  - \uc0\u55356 \u57312  Dashboard\
+  - \uc0\u9971  My Rounds\
+  - \uc0\u55357 \u56496  Money Games\
+  - \uc0\u55357 \u56522  Leaderboards\
+  - \uc0\u55357 \u56421  Members (Chapter members)\
+\
+  Chapter Admin Links:\
+  - \uc0\u55356 \u57286  Chapter Tournaments\
+  - \uc0\u9971  Manage Tee Times\
+  - \uc0\u55357 \u56523  Chapter Settings\
+\
+  League Admin Links:\
+  - \uc0\u55356 \u57314  All Chapters\
+  - \uc0\u9971  League Courses\
+  - \uc0\u55356 \u57286  League Tournaments\
+  - \uc0\u9881 \u65039  League Settings\
+\
+  Navigation Behavior:\
+  - Icons collapse on mobile\
+  - Active state based on current route\
+  - Role-based visibility (Chapter Admin vs League Admin vs Player)\
+\
+  4. Header Design\
+\
+  Layout:\
+  [League Name > Chapter Name] [\uc0\u9660  Context Switcher] ............... [\u55357 \u56596 ] [User Avatar \u9660 ]\
+\
+  Components:\
+  1. Context Breadcrumb: Shows "Pine Valley League > North Chapter"\
+  2. Context Switcher: Dropdown for changing League/Chapter\
+  3. Notifications (future)\
+  4. User Menu: Profile, Settings, Logout\
+\
+  5. Context Switcher Component Design\
+\
+  Two-Stage Selection Process:\
+\
+  Stage 1 - League Selection:\
+  Current: Pine Valley League > North Chapter \uc0\u9660 \
+  ----------------------------------------\
+  My Leagues:\
+    \uc0\u10003  Pine Valley League (2 chapters)\
+      Sunset Hills League (1 chapter)\
+      Bay Area Golf Club (3 chapters)\
+  ----------------------------------------\
+    + Create New League\
+    + Join a League\
+\
+  Stage 2 - Chapter Selection (after selecting a league):\
+  Select Chapter in Pine Valley League:\
+  ----------------------------------------\
+    \uc0\u10003  North Chapter (Current)\
+      South Chapter\
+      West Chapter\
+  ----------------------------------------\
+    + Join Different Chapter\
+\
+  Interaction Flow:\
+  1. Click dropdown \uc0\u8594  Shows leagues\
+  2. Select different league \uc0\u8594  Shows chapters in that league\
+  3. Select chapter \uc0\u8594  Navigate to new context\
+  4. Selecting current league \uc0\u8594  Directly shows chapter options\
+\
+  6. URL Structure & State Management\
+\
+  Primary URL Pattern:\
+  /leagues/[leagueId]/chapters/[chapterId]/...\
+\
+  Example Routes:\
+  /leagues/[leagueId]/chapters/[chapterId]/dashboard\
+  /leagues/[leagueId]/chapters/[chapterId]/rounds\
+  /leagues/[leagueId]/chapters/[chapterId]/money-games\
+  /leagues/[leagueId]/chapters/[chapterId]/members\
+  /leagues/[leagueId]/chapters/[chapterId]/tournaments\
+\
+  # League-wide routes (league admin only)\
+  /leagues/[leagueId]/settings\
+  /leagues/[leagueId]/courses\
+  /leagues/[leagueId]/chapters (manage all chapters)\
+\
+  State Management Strategy:\
+  1. URL as Source of Truth: Both leagueId and chapterId in URL\
+  2. Cookie Backup: Store last active leagueId:chapterId pair\
+  3. Context Provider: Share league/chapter data to all components\
+  4. Redirect Logic: If user visits /leagues/[leagueId] without chapter, redirect to their chapter\
+\
+  7. Data Requirements\
+\
+  Layout Data Fetch:\
+  // Fetch in parallel:\
+  1. User data with all league/chapter memberships\
+  2. Current league details\
+  3. Current chapter details\
+  4. User's role in current chapter\
+\
+  Data Structure Needed:\
+  \{\
+    user: \{\
+      id, email, name,\
+      memberships: [\{\
+        league: \{ id, name \},\
+        chapter: \{ id, name \},\
+        role: "PLAYER" | "CHAPTER_ADMIN" | "LEAGUE_ADMIN"\
+      \}]\
+    \},\
+    currentLeague: \{ id, name, settings \},\
+    currentChapter: \{ id, name, memberCount \},\
+    currentRole: "PLAYER" | "CHAPTER_ADMIN" | "LEAGUE_ADMIN"\
+  \}\
+\
+  8. Implementation Considerations\
+\
+  Access Control:\
+  - Validate user belongs to the chapter in URL\
+  - League-wide routes require league admin role\
+  - Chapter routes accessible to all chapter members\
+\
+  Edge Cases:\
+  - User with no chapters \uc0\u8594  Redirect to join/create flow\
+  - Invalid chapter/league in URL \uc0\u8594  Redirect to last valid or first available\
+  - Single chapter leagues \uc0\u8594  Skip chapter selection step\
+\
+  Performance:\
+  - Prefetch user's leagues/chapters\
+  - Cache context in sessionStorage\
+  - Optimistic UI updates when switching context\
+\
+  This architecture provides clear separation between League and Chapter contexts while maintaining intuitive navigation and proper access control.}

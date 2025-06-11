@@ -1,0 +1,110 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww21520\viewh17420\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Plan: Middleware-Based Self-Healing User Sync\
+\
+  Overview\
+\
+  Implement efficient user sync checking in src/middleware.ts using Clerk's publicMetadata as a cache flag to minimize database queries while ensuring all\
+  authenticated users exist in our database.\
+\
+  Core Logic Flow\
+\
+  1. Authentication & Metadata Check\
+\
+  - After user authentication via clerkMiddleware()\
+  - Extract userId and sessionClaims from auth context\
+  - Check sessionClaims.publicMetadata.db_synced flag\
+  - If db_synced: true \uc0\u8594  Skip all database operations, continue request\
+  - If db_synced is falsy/missing \uc0\u8594  Proceed to sync verification\
+\
+  2. Database Sync Verification\
+\
+  When db_synced flag is missing:\
+  - Query database using Prisma: prisma.user.findUnique(\{ where: \{ clerkId: userId \} \})\
+  - If user exists in DB \uc0\u8594  Skip to Step 4 (update metadata only)\
+  - If user not found \uc0\u8594  Proceed to Step 3 (create user)\
+\
+  3. User Creation from Clerk\
+\
+  When user missing from database:\
+  - Use Clerk Backend SDK: clerkClient.users.getUser(userId)\
+  - Extract required fields: emailAddress, firstName, lastName, etc.\
+  - Create user with Prisma: prisma.user.create(\{ data: \{ clerkId, email, ... \} \})\
+  - Handle potential race conditions with try/catch for unique constraint violations\
+\
+  4. Metadata Flag Update\
+\
+  After user exists in database (found or created):\
+  - Use Clerk Backend SDK: clerkClient.users.updateUserMetadata(userId, \{ publicMetadata: \{ db_synced: true \} \})\
+  - This permanently marks the user as synced for all future requests\
+\
+  Efficiency Mechanism\
+\
+  Session-Level Caching\
+\
+  The db_synced: true flag in publicMetadata acts as a persistent cache because:\
+  - Clerk's publicMetadata is included in the user's session token\
+  - Token refresh automatically carries the updated metadata\
+  - Subsequent requests can check sessionClaims.publicMetadata.db_synced without any database queries\
+  - Cross-device/session persistence since metadata is stored with the Clerk user account\
+\
+  Performance Benefits\
+\
+  - First request per user: 1 DB query + potential user creation + metadata update\
+  - All subsequent requests: Zero database operations (metadata check only)\
+  - Automatic cache invalidation: Never stale since flag only set after successful sync\
+\
+  Error Handling Strategy\
+\
+  Database Connection Issues\
+\
+  - Catch Prisma connection errors\
+  - Log error details for monitoring\
+  - Fail open: Allow request to continue (user experience preserved)\
+  - Consider retry logic for transient failures\
+\
+  Clerk API Issues\
+\
+  - Handle Clerk SDK errors (rate limiting, network issues)\
+  - Graceful degradation if metadata update fails\
+  - Log failures for admin monitoring\
+\
+  Race Conditions\
+\
+  - Handle unique constraint violations during user creation\
+  - Re-query database if creation fails due to duplicate clerkId\
+  - Ensure idempotent operation outcome\
+\
+  Required Dependencies\
+\
+  - @clerk/nextjs - Already available for clerkMiddleware\
+  - @clerk/backend - For clerkClient user operations\
+  - @prisma/client - For database operations\
+  - Prisma instance initialization in middleware context\
+\
+  File Structure Impact\
+\
+  - Primary: src/middleware.ts - Main implementation\
+  - Supporting: src/lib/prisma.ts - Database client (if not already available)\
+  - Types: Ensure TypeScript definitions for metadata structure\
+\
+  Implementation Considerations\
+\
+  Middleware Execution Context\
+\
+  - Ensure Prisma client works in Edge Runtime (if using Edge middleware)\
+  - Handle async operations properly within middleware\
+  - Consider timeout limits for database operations\
+\
+  Monitoring & Observability\
+\
+  - Log successful user creations for tracking\
+  - Monitor metadata update success rates\
+  - Track performance impact on request latency\
+\
+  This approach provides zero-friction user experience while ensuring 100% database consistency with minimal performance overhead after the initial sync per user.}

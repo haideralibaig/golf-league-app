@@ -1,0 +1,206 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww21700\viewh15280\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Plan: Course Management CRUD Feature\
+\
+  Overview\
+\
+  Build a comprehensive course management system with separate views for official and custom courses, proper authorization, and full CRUD operations for league\
+  administrators.\
+\
+  1. Read (List) View - Course Listing Page\
+\
+  Route: /leagues/[leagueId]/chapters/[chapterId]/courses\
+\
+  Page Structure\
+\
+  - Header Section: League name, breadcrumb navigation\
+  - Tab Interface:\
+    - "Official Courses" tab - Master course database\
+    - "Our Courses" tab - League-specific courses\
+  - Search & Filter Bar: Text search, location filter, hole count filter\
+  - Course Grid/List: Card-based layout with course details\
+\
+  Official Courses Tab\
+\
+  - Display all isOfficial: true courses from master database\
+  - Search functionality across name/location\
+  - "Import Course" button for each course (creates league copy)\
+  - Course cards show: name, location, hole count, architect, year built\
+  - Preview modal with full course details before importing\
+\
+  Our Courses Tab\
+\
+  - Display league-specific courses (leagueId matches, isOfficial: false)\
+  - Same search/filter functionality\
+  - "Add New Course" button (admin only)\
+  - "Edit" and "Delete" actions per course (admin only)\
+  - Course cards show: name, location, hole count, local rules, last updated\
+\
+  Authorization Logic\
+\
+  - Any authenticated league member can view courses\
+  - Only LEAGUE_ADMIN and CHAPTER_ADMIN see admin actions\
+  - Import/Create/Edit/Delete buttons conditionally rendered\
+\
+  2. Create View - Course Creation Form\
+\
+  Route: /leagues/[leagueId]/chapters/[chapterId]/courses/new\
+\
+  Form Sections\
+\
+  Basic Information\
+\
+  - Course name (required)\
+  - Location (optional)\
+  - Hole count (dropdown: 9, 18, 27, 36)\
+  - Description/Local rules (textarea)\
+\
+  Geographic Information\
+\
+  - Latitude/Longitude (optional, with map picker)\
+  - Address lookup integration for auto-coordinates\
+\
+  Historical Information\
+\
+  - Architect (optional)\
+  - Year built (optional)\
+  - Course record (optional)\
+  - Course record holder (optional)\
+\
+  Advanced Options (Expandable)\
+\
+  - Mark as "Official" course (system admin only)\
+  - Import hole data from existing course (dropdown)\
+\
+  Form Validation\
+\
+  - Required fields: name\
+  - Hole count validation (positive integers)\
+  - Year built validation (reasonable range)\
+  - Course record validation (positive integer, golf score range)\
+\
+  Form Actions\
+\
+  - "Save as Draft" - Creates course without holes/tees\
+  - "Save & Add Holes" - Redirects to hole configuration\
+  - "Cancel" - Returns to course list\
+\
+  3. API Routes Plan\
+\
+  Base Route: /api/leagues/[leagueId]/courses\
+\
+  GET /api/leagues/[leagueId]/courses\
+\
+  - Purpose: Fetch all courses for a league\
+  - Query Parameters:\
+    - type=official|custom|all (default: all)\
+    - search=string (optional)\
+    - holeCount=number (optional filter)\
+  - Authorization: Any league member\
+  - Response: Array of course objects with basic info\
+\
+  POST /api/leagues/[leagueId]/courses\
+\
+  - Purpose: Create new course or import official course\
+  - Authorization: LEAGUE_ADMIN or CHAPTER_ADMIN only\
+  - Body: Course data object\
+  - Special Logic:\
+    - If importing (importFromOfficial: true), copy from master course\
+    - Validate leagueId ownership\
+    - Auto-set isOfficial: false for league courses\
+\
+  GET /api/leagues/[leagueId]/courses/[courseId]\
+\
+  - Purpose: Fetch single course with full details\
+  - Authorization: Any league member\
+  - Response: Complete course object with holes/tee sets\
+\
+  PUT /api/leagues/[leagueId]/courses/[courseId]\
+\
+  - Purpose: Update existing course\
+  - Authorization: LEAGUE_ADMIN or CHAPTER_ADMIN only\
+  - Validation: Ensure course belongs to league\
+  - Body: Partial course data object\
+\
+  DELETE /api/leagues/[leagueId]/courses/[courseId]\
+\
+  - Purpose: Delete course (soft delete recommended)\
+  - Authorization: LEAGUE_ADMIN only (higher permission required)\
+  - Validation: Check for existing tournaments/rounds using course\
+  - Safety: Prevent deletion if course has historical data\
+\
+  Official Courses API: /api/courses/official\
+\
+  GET /api/courses/official\
+\
+  - Purpose: Fetch master course database\
+  - Authorization: Any authenticated user\
+  - Query Parameters: Same as league courses\
+  - Response: Official courses for import selection\
+\
+  POST /api/courses/official (System Admin Only)\
+\
+  - Purpose: Add new official course to master database\
+  - Authorization: SYSTEM_ADMIN only\
+  - Body: Course data with isOfficial: true\
+\
+  4. Authorization Strategy\
+\
+  Role-Based Permissions\
+\
+  - View Courses: All league members\
+  - Import Official Courses: LEAGUE_ADMIN, CHAPTER_ADMIN\
+  - Create Custom Courses: LEAGUE_ADMIN, CHAPTER_ADMIN\
+  - Edit League Courses: LEAGUE_ADMIN, CHAPTER_ADMIN\
+  - Delete League Courses: LEAGUE_ADMIN only\
+  - Manage Official Courses: SYSTEM_ADMIN only\
+\
+  League Ownership Validation\
+\
+  - All API routes validate user belongs to specified league\
+  - Course operations check course.leagueId matches route parameter\
+  - Player role validation against chapter membership\
+\
+  5. UI Components Strategy\
+\
+  Reusable Components\
+\
+  - CourseCard - Display course summary\
+  - CourseForm - Create/edit course form\
+  - CourseSearch - Search and filter interface\
+  - ImportCourseModal - Official course import dialog\
+  - ConfirmDeleteModal - Safe deletion confirmation\
+\
+  shadcn/ui Components Needed\
+\
+  - Tabs - Official vs Custom course views\
+  - Card - Course display cards\
+  - Form + Input/Textarea - Course creation\
+  - Button - Actions and navigation\
+  - Dialog - Modals for import/delete\
+  - Badge - Course metadata display\
+\
+  6. Data Flow\
+\
+  Course Import Flow\
+\
+  1. User browses official courses\
+  2. Clicks "Import Course"\
+  3. Modal shows course preview\
+  4. Confirms import \uc0\u8594  API creates league copy\
+  5. Redirects to edit imported course (optional customization)\
+\
+  Course Creation Flow\
+\
+  1. Admin clicks "Add New Course"\
+  2. Fills course creation form\
+  3. Submits \uc0\u8594  API validates and creates\
+  4. Success \uc0\u8594  Redirects to course list or hole configuration\
+\
+  This plan provides a complete course management system with proper authorization, intuitive UI, and scalable API design that supports both official and custom\
+  course workflows.}

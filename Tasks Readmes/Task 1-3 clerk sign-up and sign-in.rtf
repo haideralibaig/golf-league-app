@@ -1,0 +1,98 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 \uc0\u9210  I'll propose a comprehensive plan for setting up Clerk authentication frontend components.\
+\
+  Clerk Authentication Frontend Plan for Task 1.3\
+\
+  1. middleware.ts (Project Root)\
+\
+  Purpose: Protects routes and manages authentication flow at the edge.\
+\
+  Key Implementation Details:\
+  - Import authMiddleware from @clerk/nextjs\
+  - Configure public routes (sign-in, sign-up, webhooks, home)\
+  - Protect all other routes by default\
+  - Add matcher to exclude static assets and API routes that shouldn't be protected\
+  - Redirect unauthenticated users to sign-in page\
+\
+  Matcher Configuration:\
+  matcher: ['/((?!.+\\\\.[\\\\w]+$|_next).*)', '/', '/(api|trpc)(.*)']\
+\
+  2. app/layout.tsx (Root Layout)\
+\
+  Purpose: Wraps the entire application with ClerkProvider for authentication context.\
+\
+  Key Implementation Details:\
+  - Import and wrap children with <ClerkProvider>\
+  - Maintain existing metadata and global styles\
+  - Ensure proper TypeScript types for children prop\
+  - Keep the existing Inter font configuration\
+  - No appearance customization initially (use Clerk defaults)\
+\
+  3. app/sign-in/[[...sign-in]]/page.tsx\
+\
+  Purpose: Dedicated sign-in page using Clerk's pre-built component.\
+\
+  Key Implementation Details:\
+  - Import SignIn component from @clerk/nextjs\
+  - Center the component on the page with Tailwind\
+  - Use catch-all dynamic route [[...sign-in]] for Clerk's multi-step flow\
+  - No custom styling initially - use Clerk's default appearance\
+  - Will automatically redirect to the intended page after sign-in\
+\
+  4. app/sign-up/[[...sign-up]]/page.tsx\
+\
+  Purpose: Dedicated sign-up page for new user registration.\
+\
+  Key Implementation Details:\
+  - Import SignUp component from @clerk/nextjs\
+  - Center the component on the page with Tailwind\
+  - Use catch-all dynamic route [[...sign-up]] for multi-step registration\
+  - Webhook will automatically sync new users to our database\
+  - Will redirect to onboarding or home after successful sign-up\
+\
+  5. app/page.tsx (Home Page)\
+\
+  Purpose: Landing page that shows different content based on authentication status.\
+\
+  Key Implementation Details:\
+  - Import SignedIn, SignedOut, and UserButton from @clerk/nextjs\
+  - For signed-out users:\
+    - Welcome message about The Bogey Club\
+    - Links to sign-in and sign-up pages\
+    - Brief feature highlights\
+  - For signed-in users:\
+    - Personalized welcome with user's name\
+    - UserButton component for account management\
+    - Navigation to create/join a league (placeholder for now)\
+    - Quick stats or recent activity (placeholder)\
+\
+  Environment Variables Required:\
+\
+  - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY\
+  - CLERK_SECRET_KEY\
+  - NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in\
+  - NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up\
+  - NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/\
+  - NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/\
+\
+  File Structure After Implementation:\
+\
+  \uc0\u9500 \u9472 \u9472  middleware.ts\
+  \uc0\u9500 \u9472 \u9472  src/\
+  \uc0\u9474    \u9492 \u9472 \u9472  app/\
+  \uc0\u9474        \u9500 \u9472 \u9472  layout.tsx (modified)\
+  \uc0\u9474        \u9500 \u9472 \u9472  page.tsx (modified)\
+  \uc0\u9474        \u9500 \u9472 \u9472  sign-in/\
+  \uc0\u9474        \u9474    \u9492 \u9472 \u9472  [[...sign-in]]/\
+  \uc0\u9474        \u9474        \u9492 \u9472 \u9472  page.tsx (new)\
+  \uc0\u9474        \u9492 \u9472 \u9472  sign-up/\
+  \uc0\u9474            \u9492 \u9472 \u9472  [[...sign-up]]/\
+  \uc0\u9474                \u9492 \u9472 \u9472  page.tsx (new)\
+\
+  This plan provides a complete authentication flow with minimal custom code, leveraging Clerk's pre-built components while maintaining flexibility for future customization.}

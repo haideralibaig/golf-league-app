@@ -1,0 +1,94 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Plan: Course Model Definition for schema.prisma\
+\
+  Overview\
+\
+  Define a comprehensive Course model that supports both official master courses and league-specific course entries, with proper relationships and future\
+  extensibility for detailed golf course data.\
+\
+  Proposed Course Model Fields\
+\
+  Basic Information Fields\
+\
+  - id - String, primary key, CUID for unique identification\
+  - name - String, required, course name (e.g., "Pebble Beach Golf Links")\
+  - location - String, optional, course location/address\
+  - description - String, optional, brief description of the course\
+  - website - String, optional, course website URL\
+  - phoneNumber - String, optional, course contact number\
+\
+  League Relationship\
+\
+  - leagueId - String, required, foreign key to League\
+  - league - League relation, cascade delete when league is removed\
+  - Index on leagueId for query performance\
+\
+  Master Course System\
+\
+  - isOfficial - Boolean, default false\
+    - true = Part of master course database (managed by system admins)\
+    - false = League-specific course entry (can be customized per league)\
+  - masterCourseId - String, optional, references official course if this is a league copy\
+  - Index on isOfficial for filtering queries\
+\
+  Audit Fields\
+\
+  - createdAt - DateTime, auto-generated creation timestamp\
+  - updatedAt - DateTime, auto-updated modification timestamp\
+  - createdBy - String, optional, Clerk user ID who added this course\
+\
+  Future Golf-Specific Fields (Commented Placeholders)\
+\
+  // Golf Course Details (Future Implementation)\
+  // par             Int?      // Total par for the course\
+  // rating          Float?    // Course rating\
+  // slope           Int?      // Slope rating\
+  // yardage         Int?      // Total yardage\
+  // holes           Int?      // Number of holes (9, 18, etc.)\
+  // courseType      String?   // "Public", "Private", "Semi-Private"\
+  // architect       String?   // Course architect/designer\
+  // yearBuilt       Int?      // Year course was built\
+  // teeBoxes        Json?     // Array of tee box configurations\
+  // courseLayout    Json?     // Hole-by-hole details (par, yardage, handicap)\
+\
+  Database Indexes Strategy\
+\
+  - @@index([leagueId]) - Primary lookup pattern\
+  - @@index([isOfficial]) - Filter official vs custom courses\
+  - @@index([name]) - Search courses by name\
+  - @@unique([leagueId, name]) - Prevent duplicate course names within a league\
+\
+  Usage Patterns Supported\
+\
+  Master Course System\
+\
+  - System admins can create isOfficial: true courses\
+  - Leagues can "import" official courses (creates copy with isOfficial: false)\
+  - Each league maintains their own course list with customizations\
+\
+  League-Specific Courses\
+\
+  - Leagues can add custom courses not in master list\
+  - Leagues can modify details of imported courses (tee preferences, local names)\
+  - Course data is isolated per league for customization\
+\
+  Future Extensibility\
+\
+  - Placeholder fields ready for detailed golf course data\
+  - JSON fields for complex data structures (tee boxes, hole layouts)\
+  - Support for different course types and configurations\
+\
+  Relationship Impact\
+\
+  - League \uc0\u8594  Courses: One-to-many (league can have multiple courses)\
+  - Course \uc0\u8594  Future Models: Ready for tournaments, rounds, scorecards\
+  - Master Course \uc0\u8594  League Copies: Soft reference via masterCourseId\
+\
+  This design provides immediate functionality for basic course management while establishing the foundation for comprehensive golf course data tracking in future\
+  iterations.}
